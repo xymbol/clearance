@@ -45,7 +45,7 @@ class Clearance::PasswordsController < Clearance::BaseController
   def update
     @user = find_user_for_update
 
-    if @user.update_password password_reset_params
+    if @user.update_password(password_reset_params)
       sign_in @user
       redirect_to url_after_update
       session[:password_reset_token] = nil
@@ -72,7 +72,8 @@ class Clearance::PasswordsController < Clearance::BaseController
       ActiveSupport::Deprecation.warn %{Since locales functionality was added, accessing params[:user] is no longer supported.}
       params[:user][:password]
     else
-      params[:password_reset][:password]
+      reset_params = params[:password_reset] || {}
+      reset_params[:password]
     end
   end
 
@@ -85,8 +86,10 @@ class Clearance::PasswordsController < Clearance::BaseController
   end
 
   def find_user_for_create
+    password_params = params[:password] || {}
+
     Clearance.configuration.user_model.
-      find_by_normalized_email params[:password][:email]
+      find_by_normalized_email(password_params[:email])
   end
 
   def find_user_for_edit
