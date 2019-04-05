@@ -326,14 +326,39 @@ describe Clearance::Session do
     expect(headers["Set-Cookie"]).to be nil
   end
 
-  it 'signs out a user' do
-    user = create(:user)
-    old_remember_token = user.remember_token
-    env = env_with_remember_token(old_remember_token)
-    session = Clearance::Session.new(env)
-    session.sign_out
-    expect(session.current_user).to be_nil
-    expect(user.reload.remember_token).not_to eq old_remember_token
+  describe 'signing out a user' do
+    let(:user) { create(:user) }
+    let(:old_remember_token) { user.remember_token }
+    let(:env) { env_with_remember_token(old_remember_token) }
+    let(:session) { Clearance::Session.new(env) }
+
+    context 'without a cookie_domain' do
+      it 'signs out a user' do
+        session.sign_out
+
+        expect(dispatch_cookies).to be_deleted("remember_token", domain: nil)
+        expect(session.current_user).to be_nil
+        expect(user.reload.remember_token).not_to eq old_remember_token
+      end
+    end
+
+    context 'with a cookie_domain' do
+      before do
+        Clearance.configuration.cookie_domain = 'not.example.com'
+      end
+
+      it 'signs out a user' do
+        session.sign_out
+
+        expect(dispatch_cookies).to be_deleted("remember_token", domain: "not.example.com")
+        expect(session.current_user).to be_nil
+        expect(user.reload.remember_token).not_to eq old_remember_token
+      end
+    end
+
+    def dispatch_cookies
+      env['action_dispatch.cookies']
+    end
   end
 
   def env_with_cookies(cookies)
