@@ -36,6 +36,19 @@ describe Clearance::UsersController do
 
   describe "on POST to #create" do
     context "when signed out" do
+      context "with non-allowed params" do
+        it "blocks params that have not been permitted" do
+          user_attributes = FactoryBot.attributes_for(:user)
+          old_user_count = User.count
+
+          expect {
+            post :create, params: {
+              user: user_attributes.merge(admin: true)
+            }
+          }.to raise_error(ActiveModel::ForbiddenAttributesError)
+        end
+      end
+
       context "with valid attributes" do
         it "assigns and creates a user then redirects to the redirect_url" do
           user_attributes = FactoryBot.attributes_for(:user)
